@@ -1,57 +1,61 @@
 import streamlit as st
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from transformers import pipeline
 
-st.set_page_config(page_title="24/7 Live NLP AI", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="Advanced Transformer NLP AI", page_icon="⚡", layout="centered")
 
-st.title("🧠 Live NLP Sentiment AI")
-st.write("This AI model is running 24/7 in the cloud. Type text below to analyze it in real time.")
+st.title("⚡ Advanced Transformer NLP AI")
+st.caption("Powered by DistilBERT trained on the public SST-2 (Stanford Sentiment Treebank) dataset.")
 
-# 1. Dataset
-training_data = [
-    ("I love this product, it is amazing", "Positive"),
-    ("Great experience, super happy with the quality", "Positive"),
-    ("Fantastic work, truly outstanding and helpful", "Positive"),
-    ("Best purchase I have ever made, wonderful", "Positive"),
-    ("Awesome customer service and fast delivery", "Positive"),
-    ("Terrible quality, broke on the first day", "Negative"),
-    ("Worst experience ever, I hate it", "Negative"),
-    ("Very disappointing and completely useless", "Negative"),
-    ("Horrible customer support, total waste of money", "Negative"),
-    ("Do not buy this, it is awful and bad", "Negative"),
-]
-
-texts = [item[0] for item in training_data]
-labels = [item[1] for item in training_data]
-
-# 2. Train Model
+# 1. Load the Transformer Model (Cached so it downloads once and stays in memory)
 @st.cache_resource
-def train_model():
-    vectorizer = CountVectorizer(lowercase=True)
-    X = vectorizer.fit_transform(texts)
-    model = MultinomialNB()
-    model.fit(X, labels)
-    return vectorizer, model
+def load_advanced_model():
+    # Downloads a neural network architecture with ~66M parameters
+    # Trained on thousands of real-world sentence evaluations
+    classifier = pipeline(
+        "sentiment-analysis",
+        model="distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+        return_all_scores=True
+    )
+    return classifier
 
-vectorizer, model = train_model()
+with st.spinner("Initializing neural transformer weights..."):
+    nlp_engine = load_advanced_model()
 
-# 3. Interactive UI
-user_text = st.text_area("Enter a sentence to test:", "The service was super fast and awesome!")
+# 2. Interactive Input
+st.subheader("Run Inference")
+sample_text = st.text_area(
+    "Enter complex text (slang, sarcasm, or nuanced sentences):",
+    "I expected this to be a complete failure, but against all odds it blew me away."
+)
 
-if st.button("Predict Sentiment"):
-    if user_text.strip():
-        vec = vectorizer.transform([user_text])
-        prediction = model.predict(vec)[0]
-        probs = model.predict_proba(vec)[0]
-        classes = model.classes_
+if st.button("Analyze with Deep Learning"):
+    if sample_text.strip():
+        # Step A: Run through Tokenizer + Self-Attention Layers
+        with st.spinner("Processing self-attention layers..."):
+            results = nlp_engine(sample_text)[0]
+        
+        # Step B: Extract predictions
+        # DistilBERT outputs 'POSITIVE' and 'NEGATIVE' probabilities
+        scores = {item['label']: item['score'] for item in results}
+        pos_score = scores.get("POSITIVE", 0.0)
+        neg_score = scores.get("NEGATIVE", 0.0)
 
-        if prediction == "Positive":
-            st.success("Result: Positive 😊")
+        # Step C: Render results
+        if pos_score > neg_score:
+            st.success(f"**Prediction:** POSITIVE (Score: {pos_score * 100:.2f}%)")
         else:
-            st.error("Result: Negative 😞")
+            st.error(f"**Prediction:** NEGATIVE (Score: {neg_score * 100:.2f}%)")
 
-        st.subheader("Confidence Scores:")
-        for cls, prob in zip(classes, probs):
-            st.progress(float(prob), text=f"{cls}: {prob*100:.1f}%")
+        st.write("#### Neural Confidence Distribution:")
+        st.progress(float(pos_score), text=f"Positive: {pos_score * 100:.1f}%")
+        st.progress(float(neg_score), text=f"Negative: {neg_score * 100:.1f}%")
+
+        # Step D: Inspect why this is advanced
+        with st.expander("Why is this more advanced than basic models?"):
+            st.markdown("""
+            * **Context-aware:** It understands that *"not bad"* is positive, whereas older models treat *"not"* and *"bad"* as negative words.
+            * **Attention Mechanism:** Words dynamically influence each other across the entire sentence simultaneously.
+            * **Pre-trained on Billions of Words:** The base model already knows English grammar, vocabulary, and nuance before fine-tuning on public benchmark datasets.
+            """)
     else:
-        st.warning("Please type some words first.")
+        st.warning("Please type a phrase to test.")
